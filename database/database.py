@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from contextlib import contextmanager
-from .config import config
+from src.config import config
 from typing import Generator
 from .models import Base
 

@@ -1,10 +1,10 @@
 import requests
 from typing import Dict, List
 from datetime import datetime
-from .models import LogEntry
-from .database import get_session
-from .config import config
 import pandas as pd
+from .config import config
+from database.models import LogEntry
+from database.database import get_session
 
 def fetch_realm_logs(realm_id: str, api_base_url: str, api_token: str) -> List[Dict]:
     """Fetch logs from the API for a specific realm"""

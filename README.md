@@ -8,7 +8,10 @@
 ├── data
 │   └── database.db    <- Database file
 │
-├── models             <- Database models used by the project
+├── database
+    │
+    ├── database.py    <- Database class to connect with SQLite
+    └── models.py      <- Database models
 │
 ├── requirements.txt   <- The requirements file for this project (generated with `pip freeze > requirements.txt`)
 │
