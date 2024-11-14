@@ -1,6 +1,6 @@
-# Drip Logs to Database
+# drip-realm-logger
 
-A Python application that fetches, stores, and analyzes Drip API log data.
+A Python application that fetches, stores, and analyzes Drip API log data for your Realm.
 
 ## Project Structure
 
