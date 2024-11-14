@@ -5,6 +5,7 @@ import pandas as pd
 from .config import config
 from database.models import LogEntry
 from database.database import get_session
+import json
 
 def fetch_realm_logs(realm_id: str, api_base_url: str, api_token: str) -> List[Dict]:
     """Fetch logs from the API for a specific realm"""
@@ -19,10 +20,7 @@ def store_logs(logs: List[Dict]) -> None:
     """Store logs in the database"""
     with get_session() as session:
         for log in logs:
-            # Convert RFC 2822 timestamp to datetime object
             timestamp = datetime.strptime(log.get('timestamp'), '%a, %d %b %Y %H:%M:%S GMT')
-            
-            # Use guild_id as realm_id if realm_id is not present
             realm_id = log.get('realm_id') or log.get('guild_id')
             
             if not realm_id:
@@ -37,8 +35,15 @@ def store_logs(logs: List[Dict]) -> None:
                 log_entry = LogEntry(
                     realm_id=realm_id,
                     timestamp=timestamp,
-                    event_type=log.get('type'),  # Changed from 'event_type' to 'type'
-                    data=log
+                    event_type=log.get('type'),
+                    guild_id=log.get('guild_id'),
+                    receiver=str(log.get('receiver')),
+                    sender=str(log.get('sender')) if log.get('sender') else None,
+                    activity=log.get('data', {}).get('activity'),
+                    amount=log.get('data', {}).get('amount'),
+                    receiver_balance=log.get('data', {}).get('receiverBalance'),
+                    sender_balance=log.get('data', {}).get('senderBalance'),
+                    raw_data=log
                 )
                 session.add(log_entry)
         session.commit()
@@ -49,13 +54,6 @@ def sync_realm_logs(realm_id: str, api_base_url: str, api_token: str) -> None:
     store_logs(logs)
 
 def get_logs_as_dataframe(realm_id: str = None) -> 'pd.DataFrame':
-    """
-    Fetch logs from database and return as a pandas DataFrame.
-    Optionally filter by realm_id.
-    
-    Returns:
-        pd.DataFrame with columns: realm_id, timestamp, event_type, data
-    """
     with get_session() as session:
         query = session.query(LogEntry)
         if realm_id:
@@ -64,8 +62,9 @@ def get_logs_as_dataframe(realm_id: str = None) -> 'pd.DataFrame':
         # Convert SQLAlchemy results to pandas DataFrame
         df = pd.read_sql(query.statement, session.bind)
         
-        # Convert timestamp strings to datetime objects
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        # Drop the raw_data column as we don't need it for display
+        if 'raw_data' in df.columns:
+            df = df.drop(['raw_data'], axis=1)
         
         return df
 
@@ -76,17 +75,29 @@ sync_realm_logs(
         config.DRIP_API_KEY
 )
 
+# Display settings for pandas
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
+pd.set_option('display.max_colwidth', None)
+pd.set_option('display.expand_frame_repr', True)
+
 # Get all logs
 df = get_logs_as_dataframe()
 
-# Basic analysis examples:
-print(df.head())  # View first 5 rows
-print(df.info())  # Get column info and data types
-print(df.describe())  # Get basic statistics
+# Convert DataFrame to JSON records
+print("\nFull Data as JSON:")
+json_records = df.to_dict(orient='records')
+print(json.dumps(json_records, indent=2, default=str))
 
-# Filter and analyze
-print(df.groupby('event_type').count())  # Count events by type
-print(df.groupby('realm_id').size())  # Count events by realm
+# Analysis with more detailed output
+print("\nActivities Types Summary:")
+print(df.groupby('activity').size().to_string())
 
-# Time-based analysis
-print(df.set_index('timestamp').resample('1D').count())  # Daily event counts
+print("\nRealm Summary:")
+print(df.groupby('realm_id').size().to_string())
+
+# Daily Event Summary
+print("\nDaily Event Summary:")
+daily_counts = df['timestamp'].dt.date.value_counts().sort_index()
+print(daily_counts.to_string())

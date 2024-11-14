@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from typing_extensions import TypedDict
-from sqlalchemy import JSON, String, DateTime
+from sqlalchemy import JSON, String, DateTime, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class Base(DeclarativeBase):
@@ -29,4 +29,15 @@ class LogEntry(Base):
     realm_id: Mapped[str] = mapped_column(String)
     timestamp: Mapped[datetime] = mapped_column(DateTime)
     event_type: Mapped[str] = mapped_column(String)
-    data: Mapped[dict] = mapped_column(JSON) 
+    guild_id: Mapped[str] = mapped_column(String)
+    receiver: Mapped[str] = mapped_column(String)
+    sender: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    
+    # Store data in a more structured way
+    activity: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    receiver_balance: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    sender_balance: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    
+    # Keep original JSON for reference
+    raw_data: Mapped[dict] = mapped_column(JSON) 
